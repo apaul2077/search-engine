@@ -5,7 +5,7 @@ import api from '../api';
 function SearchResults() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   // Get the initial query from URL parameter
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
@@ -54,6 +54,36 @@ function SearchResults() {
     }
   };
 
+  const highlightText = (text, query) => {
+    if (!query) return text;
+    const words = query.split(/\s+/).filter(Boolean);
+    const regex = new RegExp(`(${words.join('|')})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+  };
+
+  const getHighlightedSnippet = (text, query) => {
+    if (!query) return text;
+
+    const words = query.split(/\s+/).filter(Boolean);
+    const regex = new RegExp(`(${words.join('|')})`, 'i');
+    const match = text.match(regex);
+
+    if (!match) {
+      // Fallback if no match found
+      return highlightText(text.substring(0, 200), query);
+    }
+
+    const matchIndex = match.index;
+    const start = Math.max(0, matchIndex - 10);
+    const end = Math.min(text.length, matchIndex + 190);
+
+    const snippet = text.substring(start, end);
+
+    return highlightText(snippet, query);
+  };
+
+
+
   const loadMore = () => {
     setVisibleCount(prev => Math.min(prev + 10, results.length));
   };
@@ -62,10 +92,10 @@ function SearchResults() {
     <div className="container">
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <form onSubmit={handleSearch}>
-          <input 
+          <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)} 
+            onChange={(e) => setQuery(e.target.value)}
             className="search-bar"
             placeholder="Enter your search query..."
             spellCheck="true"
@@ -90,9 +120,14 @@ function SearchResults() {
             >
               <div className="card">
                 <h3>{result.book} - Page {result.page}</h3>
-                <p>{result.content.substring(0, 200)}...</p>
+                <p
+                  dangerouslySetInnerHTML={{
+                    __html: getHighlightedSnippet(result.content, searchTrigger),
+                  }}
+                ></p>
               </div>
             </Link>
+
           ))}
           {visibleCount < results.length && (
             <button onClick={loadMore} className="button load-more">
