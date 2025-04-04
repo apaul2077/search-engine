@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:3000", 
+  origin: "http://localhost:5173", 
   credentials: true
 }));
 
@@ -33,12 +33,47 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.post("/upload", verifyToken, upload.single("file"), async (req, res) => {
-  const { filename } = req.file;
-  const uploadedBy = req.userEmail;
+  try {
+    const { filename } = req.file;
+    const uploadedBy = req.userEmail;
   
-  await Book.create({ filename, uploadedBy });
-  res.json({ msg: "File uploaded successfully" });
+    // Save book metadata to MongoDB
+    await Book.create({ filename, uploadedBy });
+
+    const pythonScript = path.join(__dirname, "search.py");
+    const python = spawn("python", [pythonScript, "__update__model__"]);
+    let output = "";
+
+    // Capture Python script output
+    python.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    python.stderr.on("data", (data) => {
+      console.error("stderr:", data.toString());
+    });
+
+    python.on("close", (code) => {
+      try {
+        const updateResponse = JSON.parse(output);
+        res.json({
+          msg: "File uploaded and model updated successfully.",
+          updateResponse,
+        });
+      } catch (err) {
+        console.error("Error parsing update response:", err);
+        res.json({
+          msg: "File uploaded but model update response parsing failed.",
+          updateResponse: output,
+        });
+      }
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ msg: "Upload failed." });
+  }
 });
+
 
 app.get("/update-model", verifyToken, (req, res) => {
   const pythonScript = path.join(__dirname, "search.py");

@@ -63,7 +63,7 @@ def search(query):
         return json.dumps({"error": "No documents available for search."})
     query_vector = vectorizer.transform([query])
     similarity = cosine_similarity(query_vector, sentences_vector)
-    top_indices = (-similarity).argsort()[0][:10]
+    top_indices = (-similarity).argsort()[0][:50]
     results = [
         {"book": metadata[idx][0], "page": metadata[idx][1], "content": sentences[idx]}
         for idx in top_indices
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         print(json.dumps({"error": "No command provided"}))
     else:
         command = sys.argv[1]
-        if command.lower() == "update":
+        if command.lower() == "__update__model__":
             # Force an update of the vector space model.
             vectorizer, sentences, metadata = build_model()
             if vectorizer is None:

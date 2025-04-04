@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User } = require("./db");
 
+require("dotenv").config()
+
 const router = express.Router();
 const SECRET_KEY = process.env.SECRET_KEY;
 
@@ -41,7 +43,6 @@ router.post("/login", async (req, res) => {
   
   
   res.cookie("token", token, {
-    httpOnly: true,
     secure: process.env.NODE_ENV === "production", 
     maxAge: 3600000 
   });
@@ -52,15 +53,23 @@ router.post("/login", async (req, res) => {
 router.post("/logout", verifyToken, (req, res) => {
   const expiredToken = jwt.sign({ email: req.userEmail }, SECRET_KEY, { expiresIn: "1ms" });
   res.cookie("token", expiredToken, {
-    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     maxAge: 1      // expires almost immediately
   });
   res.json({ msg: "Logged out successfully" });
 });
 
-router.get("/me", verifyToken, (req, res) => {
-  res.json({ email: req.userEmail });
+router.get("/me", (req, res) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.json({ loggedIn: false, msg: "Not logged in" });
+  }
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.json({ loggedIn: false, msg: "Invalid token" });
+    }
+    res.json({ loggedIn: true, email: decoded.email });
+  });
 });
 
 module.exports = { authRouter: router, verifyToken };
