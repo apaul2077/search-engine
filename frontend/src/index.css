@@ -106,7 +106,8 @@ body {
   /* Home page (search bar) styling */
   .search-container {
     text-align: center;
-    margin-top: 192px;
+    margin-top: 162px;
+    padding: 20px;
   }
   
   .search-bar {
@@ -265,7 +266,10 @@ body {
     background-color: #005bb5;
   }
   
-  
-  
-  
-  
+  .disclaimer-text {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: 1rem;
+    text-align: center;
+    /* max-width: 300px; */
+  }

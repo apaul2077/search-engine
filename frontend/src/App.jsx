@@ -11,6 +11,7 @@ import api from './api';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [searchedFromHome, setSearchedFromHome] = useState(false);
 
   useEffect(() => {
     api.get('/auth/me')
@@ -34,8 +35,8 @@ function App() {
     <div>
       <Navbar user={user} setUser={setUser} />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/search" element={<SearchResults />} />
+        <Route path="/" element={<Home searchedFromHome={searchedFromHome} setSearchedFromHome={setSearchedFromHome}/>} />
+        <Route path="/search" element={<SearchResults searchedFromHome={searchedFromHome} setSearchedFromHome={setSearchedFromHome}/>} />
         <Route path="/pdf/:filename/:page" element={<PDFViewer />} />
         <Route path="/login" element={<Login setUser={setUser} />} />
         <Route path="/signup" element={<Signup setUser={setUser} />} />

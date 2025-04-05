@@ -5,7 +5,7 @@ import logo from '../assets/fire-flame-curved.svg';
 import buffering from '../assets/buffering.gif';
 import { FaSpinner } from 'react-icons/fa';
 
-function Home() {
+function Home({searchedFromHome, setSearchedFromHome}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestion, setSuggestion] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -42,6 +42,7 @@ function Home() {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
+      setSearchedFromHome(true); // Set the flag to indicate search was triggered from home
       navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
     }
   };
@@ -86,7 +87,7 @@ function Home() {
     <div className="search-container">
       <div className='title-line'>
         <img src={logo} alt="Your SVG" className='logo' />
-        <div className='title-line-text'>Search Engine</div>
+        <div className='title-line-text'>Search</div>
       </div> 
       
       <form onSubmit={handleSearch}>
@@ -134,6 +135,10 @@ function Home() {
           Uploading and Updating model...
         </div>
       )}
+
+      <div className='disclaimer-text'>
+        Curretly there are some DSA books uploaded for sample searches. It takes 3-4min to update model when a new book is uploaded.
+      </div>
     </div>
   );
 }

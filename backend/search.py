@@ -11,6 +11,7 @@ from nltk.tokenize import TreebankWordTokenizer
 from nltk.stem.porter import PorterStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
 
 PDF_FOLDER = "books"
 DUMP_FILE = "vectorized_model.pkl"
@@ -58,17 +59,55 @@ if vectorizer and sentences:
 else:
     sentences_vector = None
 
+# def search(query):
+#     if sentences_vector is None:
+#         return json.dumps({"error": "No documents available for search."})
+#     query_vector = vectorizer.transform([query])
+#     similarity = cosine_similarity(query_vector, sentences_vector)
+#     top_indices = (-similarity).argsort()[0][:50]
+#     results = [
+#         {"book": metadata[idx][0], "page": metadata[idx][1], "content": sentences[idx]}
+#         for idx in top_indices
+#     ]
+#     return json.dumps(results)
+
 def search(query):
     if sentences_vector is None:
-        return json.dumps({"error": "No documents available for search."})
+        return json.dum({"error": "No documents available for search."})
+
     query_vector = vectorizer.transform([query])
     similarity = cosine_similarity(query_vector, sentences_vector)
     top_indices = (-similarity).argsort()[0][:50]
-    results = [
-        {"book": metadata[idx][0], "page": metadata[idx][1], "content": sentences[idx]}
-        for idx in top_indices
-    ]
+
+    # Stemmed query words
+    query_words = re.findall(r'\w+', query.lower())
+    stemmed_query_words = set(stemmer.stem(word) for word in query_words)
+
+    results = []
+
+    for idx in top_indices:
+        sentence = sentences[idx]
+        sentence_lower = sentence.lower()
+
+        matches = []
+
+        # Find all words in the sentence with their positions
+        for match in re.finditer(r'\w+', sentence_lower):
+            original_word = match.group()
+            stemmed_word = stemmer.stem(original_word)
+
+            if stemmed_word in stemmed_query_words:
+                matches.append([match.start(), match.end()])
+
+        results.append({
+            "book": metadata[idx][0],
+            "page": metadata[idx][1],
+            "content": sentence,
+            "matches": matches
+        })
+
     return json.dumps(results)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
