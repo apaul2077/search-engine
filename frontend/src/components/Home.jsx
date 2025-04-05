@@ -7,37 +7,11 @@ import { FaSpinner } from 'react-icons/fa';
 
 function Home({searchedFromHome, setSearchedFromHome}) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [suggestion, setSuggestion] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  // Fetch spelling suggestion when user stops typing (debounce effect)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm.trim()) {
-        fetchCorrection(searchTerm);
-      }
-    }, 500); // Wait 500ms before fetching correction
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // Fetch spelling correction from API
-  const fetchCorrection = async (query) => {
-    try {
-      const res = await fetch(`https://api.datamuse.com/sug?s=${query}`);
-      const data = await res.json();
-      if (data.length > 0 && data[0].word.toLowerCase() !== query.toLowerCase()) {
-        setSuggestion(data[0].word);
-      } else {
-        setSuggestion('');
-      }
-    } catch (error) {
-      console.error('Error fetching correction:', error);
-    }
-  };
-
+  
   // Handle search form submission
   const handleSearch = (e) => {
     e.preventDefault();
@@ -45,12 +19,6 @@ function Home({searchedFromHome, setSearchedFromHome}) {
       setSearchedFromHome(true); // Set the flag to indicate search was triggered from home
       navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
     }
-  };
-
-  // Apply suggested correction
-  const applyCorrection = () => {
-    setSearchTerm(suggestion);
-    setSuggestion('');
   };
 
   // Trigger hidden file input when "Upload PDF" is clicked
@@ -99,13 +67,6 @@ function Home({searchedFromHome, setSearchedFromHome}) {
           placeholder="Enter your search query..."
           spellCheck="true" // Enables native spell check
         />
-        
-        {/* Suggestion box */}
-        {suggestion && (
-          <div className="suggestion-box">
-            Did you mean <span className="suggestion" onClick={applyCorrection}>{suggestion}</span>?
-          </div>
-        )}
 
         <div style={{ marginTop: '20px' }}>
           <button type="submit" className="button">Search</button>
