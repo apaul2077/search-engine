@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:5173", 
+  origin: "https://search-engine-400.netlify.app", 
   credentials: true
 }));
 
@@ -104,7 +104,7 @@ app.get("/search", verifyToken, async (req, res) => {
   if (!q) return res.status(400).json({ msg: "Query required" });
 
   const pythonScript = path.join(__dirname, "search.py");
-  const python = spawn("python", [pythonScript, q]);
+  const python = spawn("python3", [pythonScript, q]);
   let results = "";
 
   python.stdout.on("data", (data) => {
