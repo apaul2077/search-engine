@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: "https://search-engine-400.netlify.app/", 
+  origin: "https://search-engine-400.netlify.app", 
   credentials: true
 }));
 
