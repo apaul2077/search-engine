@@ -37,7 +37,7 @@ def extract_text_from_pdfs():
 def build_model():
     pdf_data = extract_text_from_pdfs()
     if not pdf_data:
-        return None, None, None  # Handle case where no PDFs are found
+        return None, None, None
     sentences = [entry[2] for entry in pdf_data]
     metadata = [(entry[0], entry[1]) for entry in pdf_data]
     vectorizer = TfidfVectorizer(tokenizer=tokenize_and_stem, stop_words="english")
@@ -46,41 +46,26 @@ def build_model():
         pickle.dump((vectorizer, sentences, metadata), f)
     return vectorizer, sentences, metadata
 
-# Load model if exists; otherwise, build it.
 if os.path.exists(DUMP_FILE):
     with open(DUMP_FILE, "rb") as f:
         vectorizer, sentences, metadata = pickle.load(f)
 else:
     vectorizer, sentences, metadata = build_model()
 
-# Recalculate the sentences vector if model is available.
 if vectorizer and sentences:
     sentences_vector = vectorizer.transform(sentences)
 else:
     sentences_vector = None
 
-# def search(query):
-#     if sentences_vector is None:
-#         return json.dumps({"error": "No documents available for search."})
-#     query_vector = vectorizer.transform([query])
-#     similarity = cosine_similarity(query_vector, sentences_vector)
-#     top_indices = (-similarity).argsort()[0][:50]
-#     results = [
-#         {"book": metadata[idx][0], "page": metadata[idx][1], "content": sentences[idx]}
-#         for idx in top_indices
-#     ]
-#     return json.dumps(results)
-
 def search(query):
     if sentences_vector is None:
-        return json.dum({"error": "No documents available for search."})
+        return json.dumps({"error": "No documents available for search."})
 
     query_vector = vectorizer.transform([query])
     similarity = cosine_similarity(query_vector, sentences_vector)
     top_indices = (-similarity).argsort()[0][:50]
 
-    # Stemmed query words
-    query_words = re.findall(r'\w+', query.lower())
+    query_words = re.findall(r'\\w+', query.lower())
     stemmed_query_words = set(stemmer.stem(word) for word in query_words)
 
     results = []
@@ -90,9 +75,7 @@ def search(query):
         sentence_lower = sentence.lower()
 
         matches = []
-
-        # Find all words in the sentence with their positions
-        for match in re.finditer(r'\w+', sentence_lower):
+        for match in re.finditer(r'\\w+', sentence_lower):
             original_word = match.group()
             stemmed_word = stemmer.stem(original_word)
 
@@ -108,23 +91,24 @@ def search(query):
 
     return json.dumps(results)
 
-
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "No command provided"}))
-    else:
-        command = sys.argv[1]
-        if command.lower() == "__update__model__":
-            # Force an update of the vector space model.
-            vectorizer, sentences, metadata = build_model()
-            if vectorizer is None:
-                print(json.dumps({"error": "No PDFs found to build the model."}))
-            else:
-                sentences_vector = vectorizer.transform(sentences)
-                print(json.dumps({"msg": "Vector space model updated successfully."}))
+    try:
+        if len(sys.argv) < 2:
+            print(json.dumps({"error": "No command provided"}))
         else:
-            # Otherwise, treat the argument as the search query.
-            query = command
-            output = search(query)
-            sys.stdout.flush()
-            print(output)
+            command = sys.argv[1]
+            if command.lower() == "__update__model__":
+                vectorizer, sentences, metadata = build_model()
+                if vectorizer is None:
+                    print(json.dumps({"error": "No PDFs found to build the model."}))
+                else:
+                    sentences_vector = vectorizer.transform(sentences)
+                    print(json.dumps({"msg": "Vector space model updated successfully."}))
+            else:
+                query = command
+                output = search(query)
+                print(output)
+    except Exception as e:
+        print(json.dumps({"error": "Exception occurred", "detail": str(e)}))
+
+
