@@ -124,9 +124,7 @@ function SearchResults({searchedFromHome, setSearchedFromHome}) {
             >
               <div className="card">
                 <h3>{result.book} - Page {result.page}</h3>
-                <p dangerouslySetInnerHTML={{
-  __html: getSnippetWithHighlights(result.content, result.matches)
-}} />
+                <p dangerouslySetInnerHTML={{ __html: getSnippetWithHighlights(result.content, result.matches)}} />
 
               </div>
             </Link>

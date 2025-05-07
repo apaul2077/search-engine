@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+// const api = axios.create({
+//   baseURL: 'http://localhost:5000', // Replace with your backend URL
+//   withCredentials: true,
+// });
+
+
+//For production
 const api = axios.create({
-  baseURL: 'https://search-engine-sitt.onrender.com',
+  baseURL: '/', // Replace with your backend URL
   withCredentials: true,
 });
 

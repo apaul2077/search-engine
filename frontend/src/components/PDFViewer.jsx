@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 
 function PDFViewer() {
   const { filename, page } = useParams();
-  const pdfUrl = `http://localhost:5000/books/${filename}`;
+  const pdfUrl = `/books/${filename}`;
   
   return (
     <div className="container" style={{ padding: '20px' }}>

@@ -14,8 +14,10 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+
+// CORS configuration for production
 app.use(cors({
-  origin: "https://search-engine-400.netlify.app", 
+  origin: true,
   credentials: true
 }));
 
@@ -32,40 +34,48 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Helper to run Python scripts with error handling
+function runPython(args, res, callback) {
+  const pythonScript = path.join(__dirname, "search.py");
+  const py = spawn("python3", [pythonScript, ...args]);
+  let stdout = "";
+  let stderr = "";
+
+  py.stdout.on("data", data => {
+    stdout += data.toString();
+  });
+  py.stderr.on("data", data => {
+    stderr += data.toString();
+    console.error(`Python stderr: ${data.toString()}`);
+  });
+  py.on("error", error => {
+    console.error(`Failed to start python process: ${error}`);
+    if (res) res.status(500).json({ msg: 'Failed to start python subprocess', error: error.message });
+  });
+  py.on("close", (code, signal) => {
+    console.log(`Python process closed with code ${code}, signal ${signal}`);
+    if (code !== 0) {
+      console.error(`Python process exited with code ${code}`);
+      if (res) return res.status(500).json({ msg: 'Python process exited with error', code, stderr });
+    }
+    callback(stdout);
+  });
+}
+
+// Upload endpoint: handles file upload and model update
 app.post("/upload", verifyToken, upload.single("file"), async (req, res) => {
   try {
     const { filename } = req.file;
     const uploadedBy = req.userEmail;
-  
-    // Save book metadata to MongoDB
     await Book.create({ filename, uploadedBy });
 
-    const pythonScript = path.join(__dirname, "search.py");
-    const python = spawn("python", [pythonScript, "__update__model__"]);
-    let output = "";
-
-    // Capture Python script output
-    python.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    python.stderr.on("data", (data) => {
-      console.error("stderr:", data.toString());
-    });
-
-    python.on("close", (code) => {
+    runPython(["__update__model__"], res, output => {
       try {
         const updateResponse = JSON.parse(output);
-        res.json({
-          msg: "File uploaded and model updated successfully.",
-          updateResponse,
-        });
+        res.json({ msg: "File uploaded and model updated successfully.", updateResponse });
       } catch (err) {
         console.error("Error parsing update response:", err);
-        res.json({
-          msg: "File uploaded but model update response parsing failed.",
-          updateResponse: output,
-        });
+        res.json({ msg: "File uploaded but model update response parsing failed.", updateResponse: output });
       }
     });
   } catch (err) {
@@ -74,66 +84,51 @@ app.post("/upload", verifyToken, upload.single("file"), async (req, res) => {
   }
 });
 
-
+// Manual model update endpoint
 app.get("/update-model", verifyToken, (req, res) => {
-  const pythonScript = path.join(__dirname, "search.py");
-  const python = spawn("python", [pythonScript, "update"]);
-  let output = "";
-
-  python.stdout.on("data", (data) => {
-    output += data.toString();
-  });
-
-  python.stderr.on("data", (data) => {
-    console.error("stderr:", data.toString());
-  });
-
-  python.on("close", (code) => {
+  runPython(["update"], res, output => {
     try {
       res.json(JSON.parse(output));
     } catch (err) {
+      console.error("Error parsing update response:", err);
       res.status(500).json({ msg: "Error parsing update response" });
     }
   });
 });
 
-
-
+// Search endpoint: runs query script and returns results
 app.get("/search", verifyToken, async (req, res) => {
   const { q } = req.query;
   if (!q) return res.status(400).json({ msg: "Query required" });
 
-  const pythonScript = path.join(__dirname, "search.py");
-  const python = spawn("python3", [pythonScript, q]);
-  let results = "";
-
-  python.stdout.on("data", (data) => {
-    results += data.toString();
-  });
-
-  python.on("close", async () => {
+  runPython([q], res, output => {
     try {
-      const parsedResults = JSON.parse(results);
-
-      await Query.create({ userId: req.userEmail, query: q });
-
+      const parsedResults = JSON.parse(output);
+      Query.create({ userId: req.userEmail, query: q }).catch(err => console.error("Failed to save query:", err));
       res.json(parsedResults);
     } catch (err) {
+      console.error("Error parsing search results:", err);
       res.status(500).json({ msg: "Error parsing search results" });
     }
   });
 });
 
+// Retrieve past queries
 app.get("/queries", verifyToken, async (req, res) => {
   try {
-    const userId = req.userEmail; 
-    const pastQueries = await Query.find({ userId }).sort({ timestamp: -1 }); 
-
+    const pastQueries = await Query.find({ userId: req.userEmail }).sort({ timestamp: -1 });
     res.json({ pastQueries });
   } catch (error) {
+    console.error("Failed to retrieve past queries:", error);
     res.status(500).json({ error: "Failed to retrieve past queries" });
   }
 });
 
+// Serve frontend
+app.use(express.static(path.resolve(__dirname, "dist")));
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "dist", "index.html"));
+});
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
