@@ -2,30 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 
-
-function SearchResults({searchedFromHome, setSearchedFromHome}) {
+function SearchResults({ searchedFromHome, setSearchedFromHome }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Get the initial query from URL parameter
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
-  const [searchTrigger, setSearchTrigger] = useState(initialQuery); // Triggers search
+  const [searchTrigger, setSearchTrigger] = useState(initialQuery);
   const [results, setResults] = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);
   const [loading, setLoading] = useState(false);
 
-  // Create a unique key for caching based on the query
   const sessionStorageKey = `searchResults_${searchTrigger}`;
 
-  // Function to fetch results from the backend
   const fetchResults = async () => {
     if (!searchTrigger.trim()) return;
     setLoading(true);
     try {
       const res = await api.get('/search', { params: { q: searchTrigger } });
+      console.log(res.data);
       setResults(res.data);
-      setVisibleCount(10); // Reset visible count on new query
+      setVisibleCount(10);
       sessionStorage.setItem(sessionStorageKey, JSON.stringify(res.data));
     } catch (error) {
       console.error("Error fetching search results", error);
@@ -34,7 +31,6 @@ function SearchResults({searchedFromHome, setSearchedFromHome}) {
     }
   };
 
-  // Fetch results when searchTrigger changes (NOT query)
   useEffect(() => {
     if (searchTrigger) {
       const cachedResults = sessionStorage.getItem(sessionStorageKey);
@@ -42,74 +38,51 @@ function SearchResults({searchedFromHome, setSearchedFromHome}) {
         setResults(JSON.parse(cachedResults));
       } else {
         fetchResults();
-        setSearchedFromHome(false); // Reset the flag after fetching
+        setSearchedFromHome(false);
       }
     }
-  }, [searchTrigger]); // Only re-run when searchTrigger changes
-
-  // Handle search submission
-  // const handleSearch = (e) => {
-  //   e.preventDefault();
-  //   if (query.trim()) {
-  //     setSearchTrigger(query); // Update the searchTrigger (not query)
-  //     fetchResults();
-  //     // navigate(`/search?q=${encodeURIComponent(query)}`);
-  //   }
-  // };
+  }, [searchTrigger]);
 
   const loadMore = () => {
     setVisibleCount(prev => Math.min(prev + 10, results.length));
   };
 
-  function getSnippetWithHighlights(content, matches) {
-    if (!matches || matches.length === 0) return content.substring(0, 200) + '...';
-  
-    const [firstStart, firstEnd] = matches[0];
+  // ✅ JSX-safe highlighting version
+  function getHighlightedSnippet(content, matches) {
+    if (!matches || matches.length === 0) {
+      return <span>{content.substring(0, 200)}...</span>;
+    }
+
+    const [firstStart] = matches[0];
     const snippetStart = Math.max(0, firstStart - 10);
     const snippetEnd = Math.min(content.length, firstStart + 190);
     const snippet = content.substring(snippetStart, snippetEnd);
-  
-    let offset = snippetStart;
-  
-    // Filter matches that fall within the snippet range
+    const offset = snippetStart;
+
     const filteredMatches = matches
       .filter(([start, end]) => end > snippetStart && start < snippetEnd)
       .map(([start, end]) => [start - offset, end - offset]);
-  
-    let highlighted = '';
+
+    const parts = [];
     let lastIndex = 0;
-  
+
     for (const [start, end] of filteredMatches) {
-      // If highlight falls outside snippet bounds, skip
-      if (start < 0 || end > snippet.length) continue;
-      highlighted += snippet.substring(lastIndex, start);
-      highlighted += `<mark>${snippet.substring(start, end)}</mark>`;
+      if (start > lastIndex) {
+        parts.push(<span key={lastIndex}>{snippet.substring(lastIndex, start)}</span>);
+      }
+      parts.push(<mark key={start}>{snippet.substring(start, end)}</mark>);
       lastIndex = end;
     }
-  
-    highlighted += snippet.substring(lastIndex);
-    return highlighted + '...';
+
+    if (lastIndex < snippet.length) {
+      parts.push(<span key={lastIndex}>{snippet.substring(lastIndex)}</span>);
+    }
+
+    return <>{parts}...</>;
   }
-  
 
   return (
     <div className="container">
-      {/* <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <form onSubmit={handleSearch}>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="search-bar"
-            placeholder="Enter your search query..."
-            spellCheck="true"
-          />
-          <button type="submit" className="search-results-button" style={{ marginLeft: '10px' }}>
-            Search
-          </button>
-        </form>
-      </div> */}
-
       <h2>Search Results: {searchTrigger}</h2>
       {loading ? (
         <p>Loading...</p>
@@ -124,11 +97,9 @@ function SearchResults({searchedFromHome, setSearchedFromHome}) {
             >
               <div className="card">
                 <h3>{result.book} - Page {result.page}</h3>
-                <p dangerouslySetInnerHTML={{ __html: getSnippetWithHighlights(result.content, result.matches)}} />
-
+                <p>{getHighlightedSnippet(result.content, result.matches)}</p>
               </div>
             </Link>
-
           ))}
           {visibleCount < results.length && (
             <button onClick={loadMore} className="button load-more">

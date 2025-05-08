@@ -17,7 +17,7 @@ app.use(cookieParser());
 
 // CORS configuration for production
 app.use(cors({
-  origin: true,
+  origin: ["http://localhost:5173"],
   credentials: true
 }));
 
@@ -37,7 +37,7 @@ const upload = multer({ storage });
 // Helper to run Python scripts with error handling
 function runPython(args, res, callback) {
   const pythonScript = path.join(__dirname, "search.py");
-  const py = spawn("python3", [pythonScript, ...args]);
+  const py = spawn("python", [pythonScript, ...args]);
   let stdout = "";
   let stderr = "";
 
@@ -125,10 +125,10 @@ app.get("/queries", verifyToken, async (req, res) => {
 });
 
 // Serve frontend
-app.use(express.static(path.resolve(__dirname, "dist")));
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "dist", "index.html"));
-});
+// app.use(express.static(path.resolve(__dirname, "dist")));
+// app.get("/", (req, res) => {
+//   res.sendFile(path.resolve(__dirname, "dist", "index.html"));
+// });
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

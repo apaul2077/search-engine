@@ -65,7 +65,7 @@ def search(query):
     similarity = cosine_similarity(query_vector, sentences_vector)
     top_indices = (-similarity).argsort()[0][:50]
 
-    query_words = re.findall(r'\\w+', query.lower())
+    query_words = re.findall(r'\w+', query.lower())
     stemmed_query_words = set(stemmer.stem(word) for word in query_words)
 
     results = []
@@ -75,7 +75,7 @@ def search(query):
         sentence_lower = sentence.lower()
 
         matches = []
-        for match in re.finditer(r'\\w+', sentence_lower):
+        for match in re.finditer(r'\w+', sentence_lower):
             original_word = match.group()
             stemmed_word = stemmer.stem(original_word)
 
