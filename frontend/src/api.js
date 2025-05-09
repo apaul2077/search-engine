@@ -1,15 +1,15 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:8080', // Replace with your backend URL
-  withCredentials: true,
-});
-
-//For production
 // const api = axios.create({
-//   baseURL: '/', // Replace with your backend URL
+//   baseURL: 'http://localhost:8080', // Replace with your backend URL
 //   withCredentials: true,
 // });
+
+//For production
+const api = axios.create({
+  baseURL: '/', // Replace with your backend URL
+  withCredentials: true,
+});
 
 // Response interceptor to catch 401 errors
 api.interceptors.response.use(
