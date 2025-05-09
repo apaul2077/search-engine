@@ -1,26 +1,20 @@
+// src/components/SearchResults.jsx
 import React from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import SearchBar from '../components/SearchBar';
-import useSearch from '../hooks/useSearch';
+import { useOutletContext, Link } from 'react-router-dom';
+import SearchBar from './SearchBar';
 
 export default function SearchResults() {
-  // 1) Read and write URL query via React Router
-  const [searchParams, setSearchParams] = useSearchParams();
-  const q = searchParams.get('q') || '';
-
-  // 2) Call your custom hook
   const {
+    query,
     results,
-    loadMore,
     visibleCount,
     loading,
-    error
-  } = useSearch(q);
+    error,
+    handleSearch,
+    loadMore
+  } = useOutletContext();
 
-  // 3) New onSearch uses setSearchParams
-  const onSearch = term => {
-    setSearchParams({ q: term });
-  };
+  const onSearch = term => handleSearch(term);
 
   function getHighlightedSnippet(content, matches) {
     if (!matches || matches.length === 0) {
@@ -57,20 +51,17 @@ export default function SearchResults() {
 
   return (
     <div className="container">
-      {/* Pass initial value and onSearch into your SearchBar */}
-      <SearchBar initial={q} onSearch={onSearch} />
-
-      <h2>Results for “{q}”</h2>
+      <SearchBar initial={query} onSearch={onSearch}/>
+      <h2>Results for “{query}”</h2>
 
       {loading && <p>Loading…</p>}
       {error   && <p>Error: {error.message}</p>}
 
-      {results.map((r, i) => (
+      {results.slice(0, visibleCount).map((r,i) => (
         <Link
           key={i}
           to={`/pdf/${encodeURIComponent(r.book)}/${r.page}`}
-          state={{ results, query: q }}
-          style={{ textDecoration: 'none', color: 'inherit' }}
+          state={{ results, query }}
         >
           <div className="card">
             <h3>{r.book} – Page {r.page}</h3>

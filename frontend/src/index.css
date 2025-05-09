@@ -24,6 +24,8 @@ body {
     padding: 1rem;
     background-color: #ffffff;
     border-bottom: 1px solid #eaeaea;
+    /* position: fixed;
+    width: 100%; */
   }
   
   .navbar a {
@@ -70,6 +72,10 @@ body {
     padding: 10px;
   }
 
+  .add-margin{
+    margin-top: 200px;
+  }
+
  .center{
   display: flex;
   justify-content: center;
@@ -114,6 +120,14 @@ body {
     width: 120px;
   }
 
+  .app-div{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+  }
+
   /* Home page (search bar) styling */
   .search-container {
     display: flex;
@@ -121,14 +135,15 @@ body {
     justify-content: center;
     align-items: center;
     text-align: center;
-    margin-top: 162px;
     padding: 20px;
+    margin-top: 27vh;
   }
 
   .home-search-container{
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 70%;
   }
   
   .search-bar {
@@ -298,7 +313,7 @@ body {
   .search-wrapper {
     position: relative;
     width: 100%;
-    max-width: 600px; /* or whatever fits your layout */
+    max-width: 800px;
   }
   
   .search-input {
@@ -334,4 +349,15 @@ body {
   .search-btn:hover {
     background: #0056b3; /* darker on hover */
   }
-  
+
+  @media only screen and (max-width: 450px) {
+  .home-search-container{
+    width: 80%;
+    flex-direction: column;
+    }
+  }
+  @media only screen and (max-width: 800px) {
+  .home-search-container{
+    flex-direction: column;
+  }
+}
