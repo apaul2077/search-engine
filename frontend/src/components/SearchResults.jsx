@@ -1,53 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import React from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import SearchBar from '../components/SearchBar';
+import useSearch from '../hooks/useSearch';
 
-function SearchResults({ searchedFromHome, setSearchedFromHome }) {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+export default function SearchResults() {
+  // 1) Read and write URL query via React Router
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
 
-  const initialQuery = searchParams.get('q') || '';
-  const [query, setQuery] = useState(initialQuery);
-  const [searchTrigger, setSearchTrigger] = useState(initialQuery);
-  const [results, setResults] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(10);
-  const [loading, setLoading] = useState(false);
+  // 2) Call your custom hook
+  const {
+    results,
+    loadMore,
+    visibleCount,
+    loading,
+    error
+  } = useSearch(q);
 
-  const sessionStorageKey = `searchResults_${searchTrigger}`;
-
-  const fetchResults = async () => {
-    if (!searchTrigger.trim()) return;
-    setLoading(true);
-    try {
-      const res = await api.get('/search', { params: { q: searchTrigger } });
-      console.log(res.data);
-      setResults(res.data);
-      setVisibleCount(10);
-      sessionStorage.setItem(sessionStorageKey, JSON.stringify(res.data));
-    } catch (error) {
-      console.error("Error fetching search results", error);
-    } finally {
-      setLoading(false);
-    }
+  // 3) New onSearch uses setSearchParams
+  const onSearch = term => {
+    setSearchParams({ q: term });
   };
 
-  useEffect(() => {
-    if (searchTrigger) {
-      const cachedResults = sessionStorage.getItem(sessionStorageKey);
-      if (cachedResults && !searchedFromHome) {
-        setResults(JSON.parse(cachedResults));
-      } else {
-        fetchResults();
-        setSearchedFromHome(false);
-      }
-    }
-  }, [searchTrigger]);
-
-  const loadMore = () => {
-    setVisibleCount(prev => Math.min(prev + 10, results.length));
-  };
-
-  // ✅ JSX-safe highlighting version
   function getHighlightedSnippet(content, matches) {
     if (!matches || matches.length === 0) {
       return <span>{content.substring(0, 200)}...</span>;
@@ -83,33 +57,33 @@ function SearchResults({ searchedFromHome, setSearchedFromHome }) {
 
   return (
     <div className="container">
-      <h2>Search Results: {searchTrigger}</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          {results.slice(0, visibleCount).map((result, index) => (
-            <Link
-              key={index}
-              to={`/pdf/${encodeURIComponent(result.book)}/${result.page}`}
-              state={{ results, query }}
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
-              <div className="card">
-                <h3>{result.book} - Page {result.page}</h3>
-                <p>{getHighlightedSnippet(result.content, result.matches)}</p>
-              </div>
-            </Link>
-          ))}
-          {visibleCount < results.length && (
-            <button onClick={loadMore} className="button load-more">
-              Load More
-            </button>
-          )}
-        </>
+      {/* Pass initial value and onSearch into your SearchBar */}
+      <SearchBar initial={q} onSearch={onSearch} />
+
+      <h2>Results for “{q}”</h2>
+
+      {loading && <p>Loading…</p>}
+      {error   && <p>Error: {error.message}</p>}
+
+      {results.map((r, i) => (
+        <Link
+          key={i}
+          to={`/pdf/${encodeURIComponent(r.book)}/${r.page}`}
+          state={{ results, query: q }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <div className="card">
+            <h3>{r.book} – Page {r.page}</h3>
+            <p>{getHighlightedSnippet(r.content, r.matches)}</p>
+          </div>
+        </Link>
+      ))}
+
+      {visibleCount < results.length && (
+        <button onClick={loadMore} className="button load-more">
+          Load More
+        </button>
       )}
     </div>
   );
 }
-
-export default SearchResults;

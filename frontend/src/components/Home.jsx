@@ -4,21 +4,18 @@ import api from '../api';
 import logo from '../assets/fire-flame-curved.svg';
 import buffering from '../assets/buffering.gif';
 import { FaSpinner } from 'react-icons/fa';
+import SearchBar from './SearchBar';
 
-function Home({searchedFromHome, setSearchedFromHome}) {
-  const [searchTerm, setSearchTerm] = useState('');
+function Home({ searchedFromHome, setSearchedFromHome }) {
+  // const [searchTerm, setSearchTerm] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
-  
+
   // Handle search form submission
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      setSearchedFromHome(true); // Set the flag to indicate search was triggered from home
-      navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
-    }
+  const doSearch = q => {
+    navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
   // Trigger hidden file input when "Upload PDF" is clicked
@@ -30,13 +27,13 @@ function Home({searchedFromHome, setSearchedFromHome}) {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     setUploading(true);
-    
+
     setTimeout(async () => {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       try {
         const res = await api.post('/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -56,9 +53,9 @@ function Home({searchedFromHome, setSearchedFromHome}) {
       <div className='title-line'>
         <img src={logo} alt="Your SVG" className='logo' />
         <div className='title-line-text'>Search</div>
-      </div> 
-      
-      <form onSubmit={handleSearch}>
+      </div>
+
+      {/* <form onSubmit={handleSearch}>
         <input
           type="text"
           value={searchTerm}
@@ -89,7 +86,39 @@ function Home({searchedFromHome, setSearchedFromHome}) {
             spellCheck="true"
           />
         </div>
-      </form>
+      </form> */}
+
+      <div className="home-search-container">
+        <SearchBar onSearch={term => {
+          setSearchedFromHome(true);
+          navigate(`/search?q=${encodeURIComponent(term)}`);
+        }} />
+
+        {/* Upload controls */}
+        <div>
+          <button
+            type="button"
+            onClick={handleUploadClick}
+            className="upload-button"
+            disabled={uploading}
+          >
+            {uploading
+              ? <FaSpinner className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+              : "Upload PDF"
+            }
+          </button>
+          <input
+            type="file"
+            accept="application/pdf"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            disabled={uploading}
+            spellCheck="true"
+          />
+        </div>
+      </div>
+
 
       {uploading && (
         <div className="upload-popup">

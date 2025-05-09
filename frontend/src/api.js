@@ -22,5 +22,11 @@ api.interceptors.response.use(
   }
 );
 
+export function searchQuery(q) {
+  return api
+    .get('/search', { params: { q } })
+    .then(res => res.data);
+}
+
 export default api;
 
