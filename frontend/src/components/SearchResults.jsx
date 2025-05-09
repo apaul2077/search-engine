@@ -62,6 +62,7 @@ export default function SearchResults() {
           key={i}
           to={`/pdf/${encodeURIComponent(r.book)}/${r.page}`}
           state={{ results, query }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <div className="card">
             <h3>{r.book} – Page {r.page}</h3>
